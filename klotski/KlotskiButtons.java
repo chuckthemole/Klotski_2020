@@ -75,17 +75,16 @@ public class KlotskiButtons extends Klotski {
             @Override
             public void handle(ActionEvent event) {
             	try {
-	            	Block b = getUndoStack().pop();
+	            	Block b = getUndoStack().popUndoStack();
 	            	getMainBoard().setBlockPosition(b.getIndex(), b.getPosition());
 	            	getMainBoard().setBoard(b.getBoardPositions());
-	            	decrementMoveNumber();
-	            	printMoveNumber();
+	            	Klotski.setMovesText();
             	}
             	catch(Exception e) {
     				System.out.println("*********** Error  " + e + "  Error*************\nEmpty Stack");
     			}
             	
-            	printUndoStack();
+            	UndoStack.printUndoStack();
             }
         });
     }

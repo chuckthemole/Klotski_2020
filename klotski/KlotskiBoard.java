@@ -28,6 +28,7 @@ public class KlotskiBoard extends Klotski {
     private static KlotskiBlock[] blocks;
     private int[][] board;
     final private Point [][] boardPositions;
+    private UndoStack undoStack;
 
     KlotskiBoard() {
         blocks = new KlotskiBlock[10];

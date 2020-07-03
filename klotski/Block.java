@@ -1,7 +1,6 @@
 package klotski;
 
 import java.awt.Point;
-import java.util.Stack;
 
 public class Block {
 	private Point position;

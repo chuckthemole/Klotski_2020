@@ -30,26 +30,24 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.*;
-import javafx.scene.text.Text;
-
 
 public class Klotski extends Application implements ActionListener {
-	private JFrame frame; // Start menu frame
+	private static JFrame frame; // Start menu frame
     private static KlotskiBoard mainBoard;
     private static Stage stage;
-    private Scene scene;
-    private int moveNumber;
-    public static Stack<Block> undoStack;
+    private static Scene scene;
+    public static UndoStack undoStack; 
+    public static Text movesText;
+    public static Group root;
+    public static Pane p;
 
     /**
      * Starts the Klotski game application
      */
     @Override
     public void start(Stage s) {
-    	undoStack = new Stack<Block>();
-    	moveNumber = 0;
-    	Group root;
-    	
+    	undoStack = new UndoStack();
+    	p = new Pane();
         setPrimaryStage(s);
         
     	// Start the stage and new KlotskiBoard
@@ -62,15 +60,12 @@ public class Klotski extends Application implements ActionListener {
         stage.setTitle("Klotski");
         stage.setScene(scene);
         stage.setResizable(false);
-        stage.show();     
-         
-        //Text moves = new Text("Number of moves: " + moveNumber);
-        Text moves = getMoveNumber();
-        Pane p = new Pane();
-        p.getChildren().add(moves);
+        stage.show();   
+        
+    	movesText = undoStack.getStackSizeAsText();
+        p.getChildren().add(movesText);
         root.getChildren().add(p);
         p.relocate(135, 515);
-
     }  
 
     @Override
@@ -175,23 +170,17 @@ public class Klotski extends Application implements ActionListener {
         about.setActionCommand("4");
         rules.setActionCommand("5");
         frame.add(bottom, BorderLayout.CENTER); 
-        frame.pack();
-        
-    }
- 
-    public static void printUndoStack() {
-    	System.out.println("\n\nUndo stack: ");
-		for (int i = 0; i < mainBoard.getUndoStack().size(); i++) {
-			System.out.println("  " + mainBoard.getUndoStack().elementAt(i).getIndex());
-		}
-    }
-    
-    public void printMoveNumber() {
-    	System.out.println("\nmoveNumber: " + moveNumber);
+        frame.pack();     
     }
     
     public void setBlockPosition(int blockIndex, int x, int y) {
     	mainBoard.getBlocks()[blockIndex].setPosition(x, y);
+    }
+    
+    public static void setMovesText() {
+    	p.getChildren().remove(movesText);
+		movesText = undoStack.getStackSizeAsText();
+        p.getChildren().add(movesText);
     }
     
     public KlotskiBoard getMainBoard() {
@@ -206,24 +195,8 @@ public class Klotski extends Application implements ActionListener {
     	return scene;
     }
     
-    public void pushUndoStack(Block b) {
-    	undoStack.push(b);
-    }
-    
-    public Stack<Block> getUndoStack() {
+    public UndoStack getUndoStack() {
     	return undoStack;
-    }
-
-    public Text getMoveNumber() {
-    	return (new Text("Number of moves: " + moveNumber));
-    }
-    
-    public void incrementMoveNumber() {
-    	moveNumber++;
-    }
-    
-    public void decrementMoveNumber() {
-    	moveNumber--;
     }
     
     private void setPrimaryStage(Stage s) {

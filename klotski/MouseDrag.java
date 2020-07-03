@@ -119,10 +119,9 @@ public class MouseDrag {
         		System.out.println("Block does not move...");
         	}
         	else {
-        		currentBoard.pushUndoStack(pushBlock); 
-        		Klotski.printUndoStack();   
-        		klotskiBoard.incrementMoveNumber();
-        		klotskiBoard.printMoveNumber();
+        		klotskiBoard.getUndoStack().pushUndoStack(pushBlock); 
+        		klotskiBoard.getUndoStack().printUndoStack();  
+        		Klotski.setMovesText();
         	}
      
         	printCurrentBoard();
