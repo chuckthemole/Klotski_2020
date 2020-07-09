@@ -9,6 +9,7 @@ package klotski;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
 import javafx.scene.Cursor;
 
 
@@ -88,17 +89,16 @@ public class MouseDrag {
          */
         b.getRec().setOnMouseReleased(e -> {
         	//Rectangle currentBlock = b.getRec();
-        	double x = currentBlock.getX() + (currentBlock.getWidth() / 2);
-        	double y = currentBlock.getY() + (currentBlock.getHeight() / 2);
+        	double x = currentBlock.getX();
+        	double y = currentBlock.getY();
         	int flag = -1;
-        	//KlotskiBlock pushBlock = block;
         	Block pushBlock = new Block(block.getPosition(), block.getIndex(), currentBoard.getBoard());
         	printCurrentBoard();
         	
         	System.out.println("Position of currentBlock when mouse released: " + "(" + x + ", " + y + ")");
         	
         	if (block.getType() == "smallSquare") {
-            	flag = movingLogicSmallSquare(x, y);
+            	flag = movingLogicSmallSquare(x, y);         	
         	}
         	else if (block.getType() == "verticalRectangle") {
         		flag = movingLogicVerticalRectangle(x, y);
@@ -118,15 +118,60 @@ public class MouseDrag {
         		b.setPosition(b.getPosition());
         		System.out.println("Block does not move...");
         	}
-        	else {
+        	else if (flag == 1) {
         		klotskiBoard.getUndoStack().pushUndoStack(pushBlock); 
-        		klotskiBoard.getUndoStack().printUndoStack();  
+        		UndoStack.printUndoStack();  
+        		Klotski.setMovesText();
+        	}
+        	else {
         		Klotski.setMovesText();
         	}
      
         	printCurrentBoard();
         	e.consume();
         });
+    }
+    
+    public void setOldCoordinates(double x, double y) {
+    	oldX = x;
+    	oldY = y;
+    }
+    
+    public void setPositionOfBlock(double x, double y) {	
+    	int flag = -1;
+    	//Block pushBlock = new Block(block.getPosition(), block.getIndex(), currentBoard.getBoard());
+    	    	
+    	if (block.getType() == "smallSquare") {
+        	flag = movingLogicSmallSquare(x, y);         	
+    	}
+    	else if (block.getType() == "verticalRectangle") {
+    		flag = movingLogicVerticalRectangle(x, y);
+    	}
+    	else if (block.getType() == "horizontalRectangle") {
+    		flag = movingLogicHorizontalRectangle(x, y);
+    	}
+    	else if (block.getType() == "bigSquare") {
+    		flag = movingLogicBigSquare(x, y);
+    	}
+    	else {
+    		System.out.println("Error, no block type...");
+    	}
+    	
+    	
+    	if (flag == -1) {
+    		block.setPosition(block.getPosition());
+    		System.out.println("Block does not move...");
+    	}
+    	else if (flag == 1) {
+    		//b.getUndoStack().pushUndoStack(pushBlock); 
+    		//UndoStack.printUndoStack();  
+    		//Klotski.setMovesText();
+    	}
+    	else {
+    		//Klotski.setMovesText();
+    	}
+ 
+    	printCurrentBoard();
     }
 
     /**
@@ -140,36 +185,111 @@ public class MouseDrag {
     	int i, j;
     	int flag = -1;
     	
-    	/*
-    	 * 
-    	 * To Do's
-    	 * The block should only move in clear path. Should not jump blocks
-    	 */
+    	Point location = new Point((int) x, (int) y);
+    	int locationX = (int) x;
+    	int locationY = (int) y;
+		Point newLocation = currentBoard.getBoardPositions()[0][0];
+		int newLocationX = 0;
+		int newLocationY = 0;
+		double minDistance = location.distance(newLocation);
+		
+		// Find the closest point to the block's drop point.
+		for (i = 0; i < 4; i++) {
+			for (j = 0; j < 5; j++) {
+    			if (location.distance(currentBoard.getBoardPositions()[i][j]) < minDistance &&
+    					currentBoard.getBoardPositions()[i][j] != currentBoard.getBoardPositions()[(int) oldX / 100][(int) oldY / 100]) {
+    				minDistance = location.distance(currentBoard.getBoardPositions()[i][j]);
+    				newLocation = currentBoard.getBoardPositions()[i][j];
+    				newLocationX = i;
+    				newLocationY = j;
+    			}
+			}
+		}
+		
+		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
+		if (currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1) {
+			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
+			if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY)) {
+				block.setPosition(newLocation);
+	    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
+	    		currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = block.getIndex();
+	    		flag = 1;
+			}
+		}
+		return flag;
+    }
+    
+    public boolean isLegalMove(KlotskiBlock kblock, Point moveHere) {
+    	boolean flag1 = false;
+    	boolean flag2 = false;
     	
-    	for(i = 0; i < 4; i++) {
-    		for(j = 0; j < 5; j++) {
-    			try {
-	    			//  Position (i, j)
-	            	if(x <= (100 + (i*100)) && y <= (100 +(j*100)) && x >= (i*100) && y >= (j*100)) {
-	            		if(block.getType() == "smallSquare" && currentBoard.getBoard()[i][j] == -1) {
-	            			// Set the block in empty position
-	            			block.setPosition(currentBoard.getBoardPositions()[i][j]);
-	                		
-	                		// Update board
-	                		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
-	                		currentBoard.getBoard()[i][j] = block.getIndex();
-	                		i = 5;
-	                		flag = 1;
-	                		return flag;
-	            		}
-	            	}
-    			}
-    			catch(Exception e) {
-    				System.out.println("*********** Error  " + e + "  Error*************");
-    			}
+		// Check to make sure new location is empty and there is a clear path to that space.
+    	if (kblock.getType() == "smallSquare") {
+    		if (currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1) {
+    			flag1 = true;
     		}
     	}
-    	return flag;
+    	else if (kblock.getType() == "verticleRectangle") {
+    		if ((currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1 &&
+    				 currentBoard.getBoard()[(int) moveHere.getX() / 100][((int) moveHere.getY() /100 + 1)] == block.getIndex()) ||
+    				(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == block.getIndex() &&
+    				 currentBoard.getBoard()[(int) moveHere.getX() / 100][((int) moveHere.getY() /100 + 1)] == -1) ||
+    				(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1 &&
+    				 currentBoard.getBoard()[(int) moveHere.getX() / 100][((int) moveHere.getY() /100 + 1)] == -1)		 
+    					) {
+    			flag1 = true;
+    		}
+    	}
+    	else if (kblock.getType() == "horizontleRectangle") {
+    		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
+    		if ((currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == block.getIndex()) ||
+    			(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == -1) ||
+    			(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == -1)		 
+    				) {
+    			flag1 = true;
+    		} 		
+    	}
+    	else if (kblock.getType() == "bigSquare") {
+    		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
+    		if ((currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100)][((int) moveHere.getY() /100) + 1] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][((int) moveHere.getY() /100) + 1] == block.getIndex()) ||
+    				
+    			(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100)][((int) moveHere.getY() /100) + 1] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][((int) moveHere.getY() /100) + 1] == -1) ||
+    			
+    			(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100)][((int) moveHere.getY() /100) + 1] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][((int) moveHere.getY() /100) + 1] == block.getIndex()) ||
+    			
+    			(currentBoard.getBoard()[(int) moveHere.getX() / 100][(int) moveHere.getY() /100] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100)][((int) moveHere.getY() /100) + 1] == block.getIndex() &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][(int) moveHere.getY() /100] == -1 &&
+    			 currentBoard.getBoard()[((int) moveHere.getX() / 100) + 1][((int) moveHere.getY() /100) + 1] == -1)
+    				) {
+    	    		flag1 = true;
+    		}
+    	}
+    	else
+    		System.out.println("No Type...");
+    	
+		if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), (int) moveHere.getX(), (int) moveHere.getY())) {
+			flag2 = true;
+		}
+		
+		if (flag1 == true && flag2 == true) {
+			return true;
+		}
+		else {
+			return false;
+		}
     }
     
     /**
@@ -182,49 +302,64 @@ public class MouseDrag {
     public int movingLogicBigSquare(double x, double y) {
     	int i, j;
     	int flag = -1;
+    	Point location = new Point((int) x, (int) y);
+    	int locationX = (int) x;
+    	int locationY = (int) y;
+		Point newLocation = currentBoard.getBoardPositions()[0][0];
+		int newLocationX = 0;
+		int newLocationY = 0;
+		double minDistance = location.distance(newLocation);
     	
+		// Find the closest point to the block's drop point.
     	for(i = 0; i < 4; i++) {
     		for(j = 0; j < 5; j++) {
-    			
-    			try {
-	    			//  Position (i, j)
-	            	if(x <= (200 + (i*100)) && y <= (200 + (j*100)) && x >= (i*100) && y >= (j*100)) {
-	            		if(block.getType() == "bigSquare") {
-	            			if (
-	            					( currentBoard.getBoard()[i][j] == -1 && currentBoard.getBoard()[i][j + 1] == block.getIndex() &&
-	            					  currentBoard.getBoard()[i + 1][j] == -1 && currentBoard.getBoard()[i + 1][j + 1] == block.getIndex() ) || 
-	            					( currentBoard.getBoard()[i][j] == block.getIndex() && currentBoard.getBoard()[i][j + 1] == -1 &&
-	            					  currentBoard.getBoard()[i + 1][j] == block.getIndex() && currentBoard.getBoard()[i + 1][j + 1] == -1 ) ||
-	            					( currentBoard.getBoard()[i][j] == -1 && currentBoard.getBoard()[i][j + 1] == -1 &&
-	            					  currentBoard.getBoard()[i + 1][j] == block.getIndex() && currentBoard.getBoard()[i + 1][j + 1] == block.getIndex() ) ||
-	            					( currentBoard.getBoard()[i][j] == block.getIndex() && currentBoard.getBoard()[i][j + 1] == block.getIndex() &&
-	                  				  currentBoard.getBoard()[i + 1][j] == -1 && currentBoard.getBoard()[i + 1][j + 1] == -1 )
-	            				) {
-	                			// Set the block in empty position
-	                			block.setPosition(currentBoard.getBoardPositions()[i][j]);
-	                    		
-	                    		// Update board
-	                    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
-	                    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100) + 1] = -1;
-	                    		currentBoard.getBoard()[(int) (oldX / 100) + 1][(int) (oldY / 100)] = -1;
-	                    		currentBoard.getBoard()[(int) (oldX / 100) + 1][(int) (oldY / 100) + 1] = -1;                    		
-	                    		currentBoard.getBoard()[i][j] = block.getIndex();
-	                    		currentBoard.getBoard()[i][j + 1] = block.getIndex();
-	                    		currentBoard.getBoard()[i + 1][j] = block.getIndex();
-	                    		currentBoard.getBoard()[i + 1][j + 1] = block.getIndex();
-	                    		i = 5;
-	                    		flag = 1;
-	                    		return flag;
-	            			}
-	            		}
-	            	}
-    			}
-    			catch(Exception e) {
-    				System.out.println("*********** Error  " + e + "  Error*************");
+    			if (location.distance(currentBoard.getBoardPositions()[i][j]) < minDistance &&
+    					currentBoard.getBoardPositions()[i][j] != currentBoard.getBoardPositions()[(int) oldX / 100][(int) oldY / 100]) {
+    				minDistance = location.distance(currentBoard.getBoardPositions()[i][j]);
+    				newLocation = currentBoard.getBoardPositions()[i][j];
+    				newLocationX = i;
+    				newLocationY = j;
     			}
     		}
     	}
-    	return flag;
+    	
+		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
+		if ((currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100)][((int) newLocation.getY() /100) + 1] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][((int) newLocation.getY() /100) + 1] == block.getIndex()) ||
+				
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100)][((int) newLocation.getY() /100) + 1] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][((int) newLocation.getY() /100) + 1] == -1) ||
+			
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100)][((int) newLocation.getY() /100) + 1] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][((int) newLocation.getY() /100) + 1] == block.getIndex()) ||
+			
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100)][((int) newLocation.getY() /100) + 1] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][((int) newLocation.getY() /100) + 1] == -1)
+				) {
+			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
+			//if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY)) {
+				block.setPosition(newLocation);
+	    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
+	    		currentBoard.getBoard()[(int) ((oldX / 100) + 1)][(int) (oldY / 100)] = -1;
+	    		currentBoard.getBoard()[(int) (oldX / 100)][(int) ((oldY / 100) + 1)] = -1;
+	    		currentBoard.getBoard()[(int) ((oldX / 100) + 1)][(int) ((oldY / 100) + 1)] = -1;
+	    		currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = block.getIndex();
+	    		currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] = block.getIndex();
+	    		currentBoard.getBoard()[(int) newLocation.getX() / 100][((int) newLocation.getY() /100) + 1] = block.getIndex();
+	    		currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][((int) newLocation.getY() /100) + 1] = block.getIndex();
+	    		flag = 1;
+			//}
+		}
+		
+		return flag;  	
     }
     
     /**
@@ -235,42 +370,49 @@ public class MouseDrag {
      * @return flag 1 if block moves else return -1
      */
     public int movingLogicVerticalRectangle(double x, double y) {
-    	int i, j;
+     	int i, j;
     	int flag = -1;
+    	Point location = new Point((int) x, (int) y);
+    	int locationX = (int) x;
+    	int locationY = (int) y;
+		Point newLocation = currentBoard.getBoardPositions()[0][0];
+		int newLocationX = 0;
+		int newLocationY = 0;
+		double minDistance = location.distance(newLocation);
     	
+		// Find the closest point to the block's drop point.
     	for(i = 0; i < 4; i++) {
     		for(j = 0; j < 5; j++) {
-    			
-    			try {
-	    			//  Position (i, j)
-	            	if(x <= (100 + (i*100)) && y <= (200 + (j*100)) && x >= (i*100) && y >= (j*100)) {
-	            		if(block.getType() == "verticalRectangle") {
-	            			if (
-	            					(currentBoard.getBoard()[i][j] == -1 && currentBoard.getBoard()[i][j + 1] == block.getIndex()) || 
-	            					(currentBoard.getBoard()[i][j] == block.getIndex() && currentBoard.getBoard()[i][j + 1] == -1) ||
-	            					(currentBoard.getBoard()[i][j] == -1 && currentBoard.getBoard()[i][j + 1] == -1)
-	            				) {
-	                			// Set the block in empty position
-	                			block.setPosition(currentBoard.getBoardPositions()[i][j]);
-	                    		
-	                    		// Update board
-	                    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
-	                    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100) + 1] = -1;
-	                    		currentBoard.getBoard()[i][j] = block.getIndex();
-	                    		currentBoard.getBoard()[i][j + 1] = block.getIndex();
-	                    		i = 5;
-	                    		flag = 1;
-	                    		return flag;
-	            			}
-	            		}
-	            	}
-    			}
-    			catch(Exception e) {
-    				System.out.println("*********** Error  " + e + "  Error*************");
+    			if (location.distance(currentBoard.getBoardPositions()[i][j]) < minDistance &&
+    					currentBoard.getBoardPositions()[i][j] != currentBoard.getBoardPositions()[(int) oldX / 100][(int) oldY / 100]) {
+    				minDistance = location.distance(currentBoard.getBoardPositions()[i][j]);
+    				newLocation = currentBoard.getBoardPositions()[i][j];
+    				newLocationX = i;
+    				newLocationY = j;
     			}
     		}
     	}
-    	return flag;
+    	
+		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
+		if ((currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[(int) newLocation.getX() / 100][((int) newLocation.getY() /100 + 1)] == block.getIndex()) ||
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == block.getIndex() &&
+			 currentBoard.getBoard()[(int) newLocation.getX() / 100][((int) newLocation.getY() /100 + 1)] == -1) ||
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[(int) newLocation.getX() / 100][((int) newLocation.getY() /100 + 1)] == -1)		 
+				) {
+			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
+			if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY)) {
+				block.setPosition(newLocation);
+	    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
+	    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100) + 1] = -1;
+	    		currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = block.getIndex();
+	    		currentBoard.getBoard()[(int) newLocation.getX() / 100][((int) newLocation.getY() /100) + 1] = block.getIndex();
+	    		flag = 1;
+			}
+		}
+		
+		return flag;
     }
 
     /**
@@ -283,39 +425,169 @@ public class MouseDrag {
     public int movingLogicHorizontalRectangle(double x, double y) {
     	int i, j;
     	int flag = -1;
+    	Point location = new Point((int) x, (int) y);
+    	int locationX = (int) x;
+    	int locationY = (int) y;
+		Point newLocation = currentBoard.getBoardPositions()[0][0];
+		int newLocationX = 0;
+		int newLocationY = 0;
+		double minDistance = location.distance(newLocation);
     	
+		// Find the closest point to the block's drop point.
     	for(i = 0; i < 4; i++) {
     		for(j = 0; j < 5; j++) {
-    			
-    			try {
-	    			//  Position (i, j)
-	            	if(x <= (200 + (i*100)) && y <= (100 + (j*100)) && x >= (i*100) && y >= (j*100)) {
-	            		if(block.getType() == "horizontalRectangle") {
-	            			if (
-	            					(currentBoard.getBoard()[i][j] == -1 && currentBoard.getBoard()[i + 1][j] == block.getIndex()) || 
-	            					(currentBoard.getBoard()[i][j] == block.getIndex() && currentBoard.getBoard()[i + 1][j] == -1) ||
-	            					(currentBoard.getBoard()[i][j] == -1 && currentBoard.getBoard()[i + 1][j] == -1)
-	            				) {
-	                			// Set the block in empty position
-	                			block.setPosition(currentBoard.getBoardPositions()[i][j]);
-	                    		
-	                    		// Update board
-	                    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
-	                    		currentBoard.getBoard()[(int) (oldX / 100) + 1][(int) (oldY / 100)] = -1;
-	                    		currentBoard.getBoard()[i][j] = block.getIndex();
-	                    		currentBoard.getBoard()[i + 1][j] = block.getIndex();
-	                    		i = 5;
-	                    		flag = 1;
-	                    		return flag;
-	            			}
-	            		}
-	            	}
-    			}
-    			catch(Exception e) {
-    				System.out.println("*********** Error  " + e + "  Error*************");
+    			if (location.distance(currentBoard.getBoardPositions()[i][j]) < minDistance &&
+    					currentBoard.getBoardPositions()[i][j] != currentBoard.getBoardPositions()[(int) oldX / 100][(int) oldY / 100]) {
+    				minDistance = location.distance(currentBoard.getBoardPositions()[i][j]);
+    				newLocation = currentBoard.getBoardPositions()[i][j];
+    				newLocationX = i;
+    				newLocationY = j;
     			}
     		}
     	}
+    	
+		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
+		if ((currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == block.getIndex()) ||
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == block.getIndex() &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == -1) ||
+			(currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1 &&
+			 currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == -1)		 
+				) {
+			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
+			if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY)) {
+				block.setPosition(newLocation);
+	    		currentBoard.getBoard()[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
+	    		currentBoard.getBoard()[(int) ((oldX / 100) + 1)][(int) (oldY / 100)] = -1;
+	    		currentBoard.getBoard()[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = block.getIndex();
+	    		currentBoard.getBoard()[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] = block.getIndex();
+	    		flag = 1;
+			}
+		}
+		
+		return flag;
+    }
+    
+    /**
+     * Makes it so blocks cannot skip over other blocks. There must be a clear path for the block to move to a space.
+     * @param pathX is x-coordinate of the path a block can take.
+     * @param pathY is y-coordinate of the path a block can take.
+     * @param destinationX is the x-coordinate of the destination the block is traveling.
+     * @param destinationY is the y-coordinate of the destination the block is traveling.
+     * @return a boolean value that tells if the move is legal.
+     */
+    public boolean clearPathMovingLogic(int pathX, int pathY, int destinationX, int destinationY) {
+    	boolean flag1 = false;
+    	boolean flag2 = false;
+
+    	if (pathX == destinationX && pathY == destinationY) 
+    		return true;
+    	else if (pathX == destinationX && pathY < destinationY) {
+    		if (currentBoard.getBoard()[pathX][pathY + 1] == -1 || currentBoard.getBoard()[pathX][pathY + 1] == block.getIndex()) 
+    			return clearPathMovingLogic(pathX, pathY + 1, destinationX, destinationY);
+    		else 
+    			return false;
+    	}
+    	else if (pathX == destinationX && pathY > destinationY) {
+    		if (currentBoard.getBoard()[pathX][pathY - 1] == -1 || currentBoard.getBoard()[pathX][pathY - 1] == -1) 
+    			return clearPathMovingLogic(pathX, pathY - 1, destinationX, destinationY);
+    		else 
+    			return false;
+    	}
+    	else if (pathX < destinationX && pathY < destinationY) {
+    		if (currentBoard.getBoard()[pathX][pathY + 1] == -1 || currentBoard.getBoard()[pathX][pathY + 1] == block.getIndex()) 
+    			flag1 = clearPathMovingLogic(pathX, pathY + 1, destinationX, destinationY);
+    		else 
+    			flag1 = false;
+    		
+    		if (currentBoard.getBoard()[pathX + 1][pathY] == -1 || currentBoard.getBoard()[pathX + 1][pathY] == block.getIndex()) 
+    			flag2 = clearPathMovingLogic(pathX + 1, pathY, destinationX, destinationY);
+    		else 
+    			flag2 = false;
+    		
+    		if (flag1 == false && flag2 == false) 
+    			return false; 
+    		else
+    			return true;
+    	}
+    	else if (pathY == destinationY && pathX < destinationX) {
+    		if (currentBoard.getBoard()[pathX + 1][pathY] == -1 || currentBoard.getBoard()[pathX + 1][pathY] == block.getIndex()) 
+    			return clearPathMovingLogic(pathX + 1, pathY, destinationX, destinationY);
+    		else 
+    			return false;
+    	}
+    	else if (pathY == destinationY && pathX > destinationX) {
+    		if (currentBoard.getBoard()[pathX - 1][pathY] == -1 || currentBoard.getBoard()[pathX - 1][pathY] == block.getIndex()) 
+    			return clearPathMovingLogic(pathX - 1, pathY, destinationX, destinationY);
+    		else 
+    			return false;
+    	}
+    	else if (pathX < destinationX && pathY > destinationY) {
+    		if (currentBoard.getBoard()[pathX][pathY - 1] == -1 || currentBoard.getBoard()[pathX][pathY - 1] == block.getIndex()) 
+    			flag1 = clearPathMovingLogic(pathX, pathY - 1, destinationX, destinationY);
+    		else 
+    			flag1 = false;
+    		
+    		if (currentBoard.getBoard()[pathX + 1][pathY] == -1 || currentBoard.getBoard()[pathX + 1][pathY] == block.getIndex()) 
+    			flag2 = clearPathMovingLogic(pathX + 1, pathY, destinationX, destinationY);
+    		else 
+    			flag2 = false;
+    		
+    		if (flag1 == false && flag2 == false) 
+    			return false; 
+    		else
+    			return true;
+    	}
+    	else if (pathX > destinationX && pathY > destinationY) {
+    		if (currentBoard.getBoard()[pathX][pathY - 1] == -1 || currentBoard.getBoard()[pathX][pathY - 1] == block.getIndex()) 
+    			flag1 = clearPathMovingLogic(pathX, pathY - 1, destinationX, destinationY);
+    		else 
+    			flag1 = false;
+    		
+    		if (currentBoard.getBoard()[pathX - 1][pathY] == -1 || currentBoard.getBoard()[pathX - 1][pathY] == block.getIndex()) 
+    			flag2 = clearPathMovingLogic(pathX - 1, pathY, destinationX, destinationY);
+    		else 
+    			flag2 = false;
+    		
+    		if (flag1 == false && flag2 == false) 
+    			return false; 
+    		else
+    			return true;
+    	}
+    	else if (pathX > destinationX && pathY < destinationY) {
+    		if (currentBoard.getBoard()[pathX][pathY + 1] == -1 || currentBoard.getBoard()[pathX][pathY + 1] == block.getIndex()) 
+    			flag1 = clearPathMovingLogic(pathX, pathY + 1, destinationX, destinationY);
+    		else 
+    			flag1 = false;
+    		
+    		if (currentBoard.getBoard()[pathX - 1][pathY] == -1 || currentBoard.getBoard()[pathX - 1][pathY] == block.getIndex()) 
+    			flag2 = clearPathMovingLogic(pathX - 1, pathY, destinationX, destinationY);
+    		else 
+    			flag2 = false;
+    		
+    		if (flag1 == false && flag2 == false) 
+    			return false; 
+    		else
+    			return true;
+    	}
+    	else {
+    		return false;
+    	}
+    }
+    
+    public boolean movingLogicAllBlocks(double x, double y) {
+    	boolean flag = true;
+    	int newPositionX = (int) (x / 100);
+    	int newPositionY = (int) (y / 100);
+    	int oldPositionX = (int) (oldX / 100);
+    	int oldPositionY = (int) (oldY / 100);
+
+    	if (Math.abs(newPositionX - oldPositionX) > 1 || Math.abs(newPositionY - oldPositionY) > 1 ||
+    	   (Math.abs(newPositionX - oldPositionX) == 1 && Math.abs(newPositionY - oldPositionY) == 1)
+    		) {
+    		flag = false;
+    	}
+    	
     	return flag;
     }
     

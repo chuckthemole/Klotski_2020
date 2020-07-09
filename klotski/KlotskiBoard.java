@@ -171,5 +171,9 @@ public class KlotskiBoard extends Klotski {
     	mouse[blockIndex].setCurrentBlockPosition(p);
     }
     
-
+    public void findAvailableMoves(KlotskiBlock b) {
+    	if (b.getType() == "smallSquare") {
+    		
+    	}
+    }
 }

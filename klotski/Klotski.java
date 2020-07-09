@@ -14,20 +14,21 @@ import javafx.application.*;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Point;
 import java.awt.event.ActionListener;
-import java.util.Stack;
+import java.util.Scanner;
+import java.util.Set;
+
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javafx.event.*;
+import javax.swing.text.html.HTMLDocument.Iterator;
+
 import javafx.scene.*;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 
@@ -36,16 +37,27 @@ public class Klotski extends Application implements ActionListener {
     private static KlotskiBoard mainBoard;
     private static Stage stage;
     private static Scene scene;
-    public static UndoStack undoStack; 
-    public static Text movesText;
-    public static Group root;
-    public static Pane p;
+    private static UndoStack undoStack; 
+    private static Text movesText;
+    private static Group root;
+    private static Pane p;
+    private static int numberOfGamesPlayed = 0;
+    private static Klotski klotskiInstance = new Klotski();
+    private static GameThread gt; 
 
+    
+    public static int numberOfThreads = 0;
+    
     /**
      * Starts the Klotski game application
      */
     @Override
-    public void start(Stage s) {
+    public void start(Stage s) {  	
+    	startKlotskiGame(s);
+    }  
+
+    public void startKlotskiGame(Stage s) {
+    	stage = s;
     	undoStack = new UndoStack();
     	p = new Pane();
         setPrimaryStage(s);
@@ -60,14 +72,19 @@ public class Klotski extends Application implements ActionListener {
         stage.setTitle("Klotski");
         stage.setScene(scene);
         stage.setResizable(false);
-        stage.show();   
+        stage.show();
         
     	movesText = undoStack.getStackSizeAsText();
         p.getChildren().add(movesText);
         root.getChildren().add(p);
         p.relocate(135, 515);
-    }  
-
+        
+        System.out.print("Start called...");
+        
+    	Solver solver = new Solver(mainBoard);
+    	solver.createTree();
+    }
+    
     @Override
     public void actionPerformed(java.awt.event.ActionEvent e) {        //menu based on button pressed
         int action = Integer.parseInt(e.getActionCommand()); 
@@ -78,7 +95,22 @@ public class Klotski extends Application implements ActionListener {
             case 1:
             	System.out.print("Start game...");
             	frame.dispose();
-                Application.launch();
+        		numberOfGamesPlayed++;
+        		
+            	Platform.runLater(() -> {
+                    // fxThread is the JavaFX Application Thread after this call
+            		try {
+                		stage.close();
+            		} catch (Exception ex) {
+            			System.out.println("Exception: " + ex);
+            		}
+                    startKlotskiGame(stage);
+                });
+            	
+            	//Thread.getAllStackTraces().clear();
+
+            	System.out.println("Number of threads after clearing: " + Thread.activeCount());
+        		//Application.launch(Klotski.class);
                 break;
             // case 2 starts the Solve Game animation
             case 2:
@@ -102,7 +134,7 @@ public class Klotski extends Application implements ActionListener {
             	System.out.print("Rules...");
             	frame.dispose();
             	// TO DO 
-                break;          
+                break;            
             default:
                 System.out.print("\nInvalid option!!!");
         }
@@ -125,10 +157,9 @@ public class Klotski extends Application implements ActionListener {
         frame = new JFrame("Klotski - Created by Charles Thomas");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
-        //frame.setSize(1300, 400);
         frame.setLocationRelativeTo(null);
-        //frame.setLayout(new FlowLayout());
         frame.setVisible(true);
+        frame.setLocationRelativeTo(null);
 
         // Make title, about button, and rules button
         top = new JPanel();
@@ -177,13 +208,19 @@ public class Klotski extends Application implements ActionListener {
     	mainBoard.getBlocks()[blockIndex].setPosition(x, y);
     }
     
+    public void winningCondition() {
+    	gt.stop();
+    	gt = klotskiInstance.new GameThread("Klotski");
+    	System.out.println("Number of threads: " + numberOfThreads);
+    }
+    
     public static void setMovesText() {
     	p.getChildren().remove(movesText);
 		movesText = undoStack.getStackSizeAsText();
         p.getChildren().add(movesText);
     }
     
-    public KlotskiBoard getMainBoard() {
+    public static KlotskiBoard getMainBoard() {
     	return mainBoard;
     }
     
@@ -199,12 +236,78 @@ public class Klotski extends Application implements ActionListener {
     	return undoStack;
     }
     
-    private void setPrimaryStage(Stage s) {
-        Klotski.stage = stage;
+    public void incrementNumberOfGamesPlayed() {
+    	numberOfGamesPlayed++;
     }
     
+    public int getNumberOfGamesPlayed() {
+    	return numberOfGamesPlayed;
+    }
+    
+    public void setPrimaryStage(Stage s) {
+        Klotski.stage = s;
+    }
+    
+    /**
+     * GameThread subclass
+     * 
+     * @author chuck
+     *
+     */
+	 public class GameThread implements Runnable { 
+	   
+	     // to stop the thread 
+	     private boolean exit; 
+	   
+	     private String name; 
+	     Thread t; 
+	   
+	     GameThread(String threadname) 
+	     { 
+	    	 numberOfThreads++;
+	         name = threadname; 
+	         t = new Thread(this, name); 
+	         System.out.println("New thread: " + t); 
+	         exit = false; 
+	         t.start(); // Starting the thread 
+	     } 
+	   
+	     // execution of thread starts from run() method 
+	     public void run() { 
+	    	 klotskiInstance = new Klotski();
+	    	 klotskiInstance.startGUI();
+	    	 	    	 
+	         int i = 0; 
+	         while (!exit) { 
+	             //System.out.println(name + ": " + i); 
+	             i++; 
+	             try { 
+	                 Thread.sleep(1000); 
+	             } 
+	             catch (InterruptedException e) { 
+	                 System.out.println("Caught:" + e); 
+	             } 
+	         } 
+	         System.out.println(name + " Stopped."); 
+	         try {
+	        	 klotskiInstance.stop();
+	         } 
+	         catch (Exception e) {
+	        	 System.out.println("Caught:" + e); 
+	         }
+	     }
+	     
+	     // for stopping the thread 
+	     public void stop() {	      
+		         exit = true; 
+		 } 
+	 } 
+    
     public static void main(String[] args) {
-    	Klotski game = new Klotski();
-    	game.startGUI();
+    	gt = klotskiInstance.new GameThread("Klotski");
+    	System.out.println("Number of threads: " + numberOfThreads);
+    	
+    	Scanner s = new Scanner(System.in);
+    	s.close();
     }
 }

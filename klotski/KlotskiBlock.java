@@ -118,8 +118,8 @@ public class KlotskiBlock {
 	
 	public void setPosition(Point p) {
 		position = p;
-		this.getRec().setX(p.getX());
-		this.getRec().setY(p.getY());
+		block.setX(p.getX());
+		block.setY(p.getY());
 	}
 	
 	public void setPosition(int x, int y) {

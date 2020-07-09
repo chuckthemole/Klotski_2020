@@ -67,6 +67,7 @@ public class KlotskiButtons extends Klotski {
                 catch (Exception e) {
                 	System.out.print("Error closing stage...");
                 }           	
+            	incrementNumberOfGamesPlayed();
                 start(getStage());        
             }
         });
