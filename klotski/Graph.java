@@ -5,8 +5,8 @@ import java.util.LinkedList;
 public class Graph {
 	private GraphNode root = null;
 	
-	Graph(KlotskiBlock x, KlotskiBoard b) {
-		root = new GraphNode(x, b, null);
+	Graph(KlotskiBoard b) {
+		root = new GraphNode(b);
 	}
 	
 	public GraphNode getRoot() {
@@ -18,53 +18,29 @@ public class Graph {
 	}
 	
 	public class GraphNode {
-		KlotskiBlock value;
 		KlotskiBoard board;
-		GraphNode parent;
-		LinkedList<GraphNode> pointers = null;
+		LinkedList<GraphNode> children = null;
 		
-		GraphNode(KlotskiBlock x, KlotskiBoard b, GraphNode n) {
-			value = x;
-			pointers = new LinkedList<GraphNode>();
+		GraphNode(KlotskiBoard b) {
+			children = new LinkedList<GraphNode>();
 			board = b;
-			parent = n;
 		}
 		
-		public void addBranch(KlotskiBlock node, KlotskiBoard b) {
-			GraphNode n = new GraphNode(node, b, this);
-			pointers.add(n);
-		}
-		
-		public void setPointers(LinkedList<GraphNode> list) {
-			pointers = list;
+		public void addChild(KlotskiBoard b) {
+			GraphNode n = new GraphNode(b);
+			children.add(n);
 		}
 		
 		public void setBoard(KlotskiBoard b) {
-			board = b;
+			board = b.copy();
 		}
-		
-		public void setValue(KlotskiBlock t) {
-			value = t;
-		}
-		
-		public void setParent(GraphNode n) {
-			parent = n;
-		}
-		
-		public GraphNode getParent() {
-			return parent;
-		}
-		
-		public KlotskiBlock getValue() {
-			return value;
-		}
-		
+
 		public KlotskiBoard getBoard() {
 			return board;
 		}
 		
-		public LinkedList<GraphNode> getEdges() {
-			return pointers;
+		public LinkedList<GraphNode> getChildren() {
+			return children;
 		}
 	}
 }

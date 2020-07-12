@@ -3,158 +3,192 @@ package klotski;
 import java.awt.Point;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Stack;
-
-import klotski.MoveTree.TreeNode;
-
-import klotski.Graph.GraphNode;
 
 public class Solver {
-	private int moves;
-	private KlotskiBoard board;
-	Graph graph;
-	MoveTree tree;
-	//private Queue q;
+	private KlotskiBoard mainBoard;
+	private static KlotskiBoardList boardList;
+	private static Queue<KlotskiBoard> queue; 
+	private KlotskiBoard[] pathBoard;
+	private BlockMove[] b = new BlockMove[118];
+	private int index;
 
-	Solver(KlotskiBoard b) {
-		board = new KlotskiBoard();
-		for(int i = 0; i < 10; i++) {
-			board.setBlockPosition(i, b.getBlock(i).getPosition());
-		}
-		createTree();
-		//createGraph();
+	Solver(KlotskiBoard bk) {
+		boardList = new KlotskiBoardList();
+		mainBoard = bk.copy();
+		pathFinder();
 	}
 	
-	public void createTree() {
-		Queue<TreeNode> q = new LinkedList<TreeNode>();
-		MoveTree t;
-		int i, j, l, x, y, loopCount;
-		KlotskiBoard tempBoard;
-		KlotskiBoard b;
+	public void pathFinder() {
+		boolean stop = false;
+		int i, j;
+		KlotskiBoard bk;
+		queue = new LinkedList<KlotskiBoard>();
+		int flag;
+		Point p;
+		queue.add(mainBoard.copy());
+		boardList.insert(mainBoard);	
 		
-		// Set up root of tree
-		b = new KlotskiBoard();
-		for(i = 0; i < 10; i++) {
-			b.getMouse()[i].setPositionOfBlock(board.getBlock(i).getPosition().getX(), board.getBlock(i).getPosition().getY());
-			//b.setBlockPosition(i, board.getBlock(i).getPosition());
-		}
-		t = new MoveTree(b);
+		setUpPathArray();
 		
-		// Maybe just tree = t ???
-		tree = new MoveTree(b);
-		tree.setRoot(t.getRoot());
-		
-		q.add(t.getRoot());
-		
-		loopCount = 0;
-		while (loopCount != 3) {// || !q.isEmpty() || (t.getRoot().getBoard().getBlocks()[9].getPosition().getX() == 100 && 
-				//t.getRoot().getBoard().getBlocks()[9].getPosition().getY() == 300)) {
-			//b = t.getRoot().getBoard();
-			b = new KlotskiBoard();
-			for(i = 0; i < 10; i++) {
-				b.getMouse()[i].setPositionOfBlock(t.getRoot().getBoard().getBlock(i).getPosition().getX(), t.getRoot().getBoard().getBlock(i).getPosition().getY());
-				//b.setBlockPosition(i, t.getRoot().getBoard().getBlock(i).getPosition());
+		while (!stop) {
+			mainBoard = (queue.poll()).copy();		
+			for (i = 0; i < pathBoard.length; i++) {
+				System.out.println(i + "\n");
+				if (mainBoard.equals(pathBoard[i])) { // check mainBoard against pathBoard****************Need to fix this part				
+					System.out.println("Break 1");
+					index = i;
+					i = pathBoard.length;
+					stop = true;
+					System.out.print("********************************Index = " + index + "*************************");
+				}
 			}
-			tempBoard = new KlotskiBoard();
-			for(i= 0; i < 10; i++) {
-				tempBoard.getMouse()[i].setPositionOfBlock(b.getBlock(i).getPosition().getX(), b.getBlock(i).getPosition().getY());
-				//tempBoard.setBlockPosition(i, b.getBlock(i).getPosition());
+	
+			if (mainBoard.getBlocks()[9].getPosition().getX() == 100 && mainBoard.getBlocks()[9].getPosition().getY() == 300) {
+				// To Do's
+				System.out.println("Break 2");
+				break;
 			}
-			for (i = 0; i < 10; i++) {	
+				
+			for (i = 0; i < 10; i++) {
 				for (j = 0; j < 4; j++) {
+					bk = mainBoard.copy();
 					
-					if (j == 0) {
-						x = (int) tempBoard.getBlocks()[i].getPosition().getX()  + 100;
-						y = (int) tempBoard.getBlocks()[i].getPosition().getY();
-					}
-					else if (j == 1) {
-						x = (int) tempBoard.getBlocks()[i].getPosition().getX()  - 100;
-						y = (int) tempBoard.getBlocks()[i].getPosition().getY();
+					if (j == 1) {
+						p = new Point((int) bk.getBlocks()[i].getPosition().getX() + 100, (int) bk.getBlocks()[i].getPosition().getY());
 					}
 					else if (j == 2) {
-						x = (int) tempBoard.getBlocks()[i].getPosition().getX();
-						y = (int) tempBoard.getBlocks()[i].getPosition().getY() + 100;
+						p = new Point((int) bk.getBlocks()[i].getPosition().getX() - 100, (int) bk.getBlocks()[i].getPosition().getY());
+					}
+					else if (j == 3) {
+						p = new Point((int) bk.getBlocks()[i].getPosition().getX(), (int) bk.getBlocks()[i].getPosition().getY() - 100);
 					}
 					else {
-						x = (int) tempBoard.getBlocks()[i].getPosition().getX();
-						y = (int) tempBoard.getBlocks()[i].getPosition().getY() - 100;
+						p = new Point((int) bk.getBlocks()[i].getPosition().getX(), (int) bk.getBlocks()[i].getPosition().getY() + 100);
 					}
 					
 					try {
-						Point p = new Point(x, y);
-						if (isLegalMove(tempBoard.getBlock(i), p, tempBoard)) {
-							tempBoard.setBlockPosition(i, p);
-							tempBoard.getMouse()[i].printCurrentBoard();
-							t.getRoot().addBranch(p, i, tempBoard);
-							q.add(t.getRoot().getChildren().getLast());
-						
-							// Reset tempBoard
-							tempBoard = new KlotskiBoard();
-							for(l = 0; l < 10; l++) {
-								tempBoard.getMouse()[i].setPositionOfBlock(b.getBlock(i).getPosition().getX(), b.getBlock(i).getPosition().getY());
-								//tempBoard.setBlockPosition(i, b.getBlock(i).getPosition());
-							}
-						}
+						flag = bk.setBlockPosition(bk.getBlocks()[i], p);
 					}
 					catch (Exception e) {
-						System.out.println("Out of bounds!" + e);
-					}
+						System.out.println(e);
+						flag = -1;
+					}				
 					
-				}
+					if (!boardList.contains(bk)) {
+						if (flag != -1) { 
+							if (i == 9) {
+								queue.add(bk.copy());	
+								for (int l = 0; l < queue.size() - 1; l++) {						
+									queue.add(queue.remove());
+								}
+							}
+							else
+								queue.add(bk.copy());
+							
+							boardList.insert(bk);
+							System.out.println("\nPrevious Board: ");
+							mainBoard.printCurrentBoard();
+						}
+					}
+				}			
 			}
-			System.out.println("Size of Queue: " + q.size());
-			loopCount++;
-			System.out.println("Loop Count: " + loopCount);
-			t.setRoot(q.remove());
-			//System.out.println("Big block coordinates: (" + t.getRoot().getBoard().getBlocks()[9].getPosition().getX() + ", " +
-			//		t.getRoot().getBoard().getBlocks()[9].getPosition().getY()+ ")");
-			System.out.println("Block[0] coordinates: (" + t.getRoot().getBoard().getBlock(9).getPosition().getX() + ", " +
-					t.getRoot().getBoard().getBlock(9).getPosition().getY() + ")");
 		}
-		System.out.println("Finished creating tree...");	
+		System.out.println("\n\n\nFinished creating graph...");	
+	}
+	
+	public int getIndex() {
+		return index;
+	}
+	
+	public KlotskiBoard[] getpathBoard() {
+		return pathBoard;
+	}
+	
+	public BlockMove[] getBlockMoveArray() {
+		return b;
 	}
 	
 	public void createGraph() {
-		LinkedList<KlotskiBlock> list = null;
-		KlotskiBoard temp;
 		int i, j;
-		Graph g = null;
-		Queue<GraphNode> q = new LinkedList<GraphNode>();
+		double bigBlockPosition = 0;
+		KlotskiBoard b;
+		Queue<KlotskiBoard> q = new LinkedList<KlotskiBoard>();
+		int flag;
+		Point p;
+		//KlotskiBoardList boardList = new KlotskiBoardList();
+		boolean bigBlockMovedDown = false;
+		q.add(mainBoard.copy());
+		boardList.insert(mainBoard);
 		
-		// Set up root of graph
-		g = new Graph(null, board);	
-		graph = g;
 		
-		//try {
-			System.out.println("1");
-			q.add(g.getRoot());
-			System.out.println("2");
-			// Add to the graph until the queue is empty or big block is in final position.
-			while(!q.isEmpty() || 
-					g.getRoot().getBoard().getBlocks()[9].getPosition().getX() == 100 && 
-					g.getRoot().getBoard().getBlocks()[9].getPosition().getY() == 300) {
-				System.out.println("3");
-
-				// Get movable positions for each block
-				for (i = 0; i < 10; i++) {	
-					list = getMovablePositions(g.getRoot().getBoard().getBlocks()[i], g.getRoot().getBoard()); // Positions for the ith block
-					System.out.println("4");
-					for (j = 0; j < list.size(); j++) {
-						temp = g.getRoot().getBoard();
-						temp.setBlockPosition(list.get(j).getIndex(), list.get(j).getPosition());
-						g.getRoot().addBranch(list.get(j), temp);
-						q.add(g.getRoot().getEdges().getLast()); // need to find index!
+		// while queue is not empty or 
+		while (!q.isEmpty()) {
+			mainBoard = (q.poll()).copy();		
+			if (mainBoard.getBlocks()[9].getPosition() == mainBoard.getBoardPositions()[1][3]) {
+				// To Do's
+				System.out.println("Break 1");
+				break;
+			}	
+			if (mainBoard.getBlocks()[9].getPosition().getX() == 100 && mainBoard.getBlocks()[9].getPosition().getY() == 300) {
+				// To Do's
+				System.out.println("Break 2");
+				break;
+			}
+		
+			for (i = 0; i < 10; i++) {
+				for (j = 0; j < 4; j++) {
+					b = mainBoard.copy();
+					bigBlockMovedDown = false;
+					
+					if (j == 1) {
+						p = new Point((int) b.getBlocks()[i].getPosition().getX() + 100, (int) b.getBlocks()[i].getPosition().getY());
 					}
-					System.out.println("5");
-				}
-				g.setRoot(q.remove());
-				System.out.println("6");
-			//}
-			System.out.println("************************Graph Completed*****************************");
+					else if (j == 2) {
+						p = new Point((int) b.getBlocks()[i].getPosition().getX() - 100, (int) b.getBlocks()[i].getPosition().getY());
+					}
+					else if (j == 3) {
+						p = new Point((int) b.getBlocks()[i].getPosition().getX(), (int) b.getBlocks()[i].getPosition().getY() - 100);
+					}
+					else {
+						p = new Point((int) b.getBlocks()[i].getPosition().getX(), (int) b.getBlocks()[i].getPosition().getY() + 100);
+						if (i == 9) {
+							bigBlockMovedDown = true;
+							bigBlockPosition += 100;
+						}
+					}
+					
+					try {
+						flag = b.setBlockPosition(b.getBlocks()[i], p);
+					}
+					catch (Exception e) {
+						System.out.println(e);
+						flag = -1;
+					}				
+					
+					if (!boardList.contains(b)) {
+						if (flag != -1) { 
+							if (i == 9) {
+								q.add(b.copy());	
+								for (int l = 0; l < q.size() - 1; l++) {						
+									q.add(q.remove());
+								}
+							}
+							else
+								q.add(b.copy());
+							
+							boardList.insert(b);
+							System.out.println("\nPrevious Board: ");
+							mainBoard.printCurrentBoard();
+						}
+					}
+				}			
+			}
 		}
-		//catch (Exception e) {
-		//	System.out.println("Exception in createGraph(): " + e);
-		//}
+		System.out.println("\n\n\nFinished creating graph...");		 
+	}
+	
+	public KlotskiBoard getBoard() {
+		return mainBoard;
 	}
 	
 	public LinkedList<KlotskiBlock> getMovablePositions(KlotskiBlock b, KlotskiBoard kb) {
@@ -281,28 +315,134 @@ public class Solver {
 		}
     }
 	
-	/**
-	 * BFS algorithm
-	 * @return
-	 */
-	public Stack solve() {
-		KlotskiBoard b = board;
-		Queue<KlotskiBoard> q = null;
-		KlotskiBoard temp = null;
-		Stack s = new Stack();
+	public void setUpPathArray() {
+		b[0] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(200, 400));
+    	b[1] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(100, 400));
+    	b[2] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 300));
+    	b[3] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(200, 200));
+    	b[4] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(100, 200));
+    	b[5] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(0, 300));
+    	b[6] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(0, 400));
+    	b[7] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(100, 300));
+    	b[8] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(100, 200));
+    	b[9] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(0, 200));
+    	b[10] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 200));
+    	b[11] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(200, 300));
+    	b[12] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(300, 200));
+    	b[13] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(200, 200));
+    	b[14] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(200, 300));
+    	b[15] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(100, 400));
+    	b[16] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(0, 400));
+    	b[17] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(0, 300));
+    	b[18] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(100, 200));
+    	b[19] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(0, 200));
+    	b[20] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 200));
+    	b[21] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(100, 200));
+    	b[22] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(200, 200));
+    	b[23] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(200, 400));
+    	b[24] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(100, 400));
+    	b[25] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 200));
+    	b[26] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(300, 400));
+    	b[27] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(200, 400));
+    	b[28] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(0, 400));
+    	b[29] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(0, 300));
+    	b[30] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(0, 200));
+    	b[31] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(100, 200));
+    	b[32] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(200, 200));
+    	b[33] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(300, 100));
+    	b[34] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(300, 200));
+    	b[35] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(200, 0));
+    	b[36] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(100, 0));
+    	b[37] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(0, 100));
+    	b[38] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(0, 200));
+    	b[39] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(0, 0));
+    	b[40] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(0, 100));
+    	b[41] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(0, 200));
+    	b[42] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(100, 100));
+    	b[43] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(100, 200));
+    	b[44] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(100, 0));
+    	b[45] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(300, 100));
+    	b[46] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(300, 0));
+    	b[47] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 200));
+    	b[48] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(200, 300));
+    	b[49] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(200, 400));
+    	b[50] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(200, 200));
+    	b[51] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(200, 300));
+    	b[52] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(100, 400));
+    	b[53] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(0, 300));
+    	b[54] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(200, 400));
+    	b[55] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(100, 300));
+    	b[56] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(100, 200));
+    	b[57] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(0, 200));
+    	b[58] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(100, 100));
+    	b[59] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(100, 0));
+    	b[60] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(0, 0));
+    	b[61] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 0));
+    	b[62] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(100, 0));
+    	b[63] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(0, 100));
+    	b[64] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(0, 0));
+    	b[65] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(0, 200));
+    	b[66] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(0, 100));
+    	b[67] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(0, 300));
+    	b[68] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(100, 300));
+    	b[69] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(100, 400));
+    	b[70] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(100, 200));
+    	b[71] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(100, 100));
+    	b[72] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(100, 0));
+    	b[73] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(200, 0));
+    	b[74] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 100));
+    	b[75] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 0));
+    	b[76] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(200, 200));
+    	b[77] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(100, 200));
+    	b[78] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(100, 300));
+    	b[79] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(100, 100));
+    	b[80] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(100, 0));
+    	b[81] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(0, 0));
+    	b[82] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(0, 200));
+    	b[83] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(0, 400));
+    	b[84] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(100, 400));
+    	b[85] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(100, 200));
+    	b[86] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 100));
+    	b[87] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 200));
+    	b[88] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(300, 0));
+    	b[89] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 100));
+    	b[90] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(200, 0));
+    	b[91] = new BlockMove(mainBoard.getBlocks()[5].getIndex(), new Point(100, 0));
+    	b[92] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(0, 100));
+    	b[93] = new BlockMove(mainBoard.getBlocks()[4].getIndex(), new Point(0, 0));
+    	b[94] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(0, 200));
+    	b[95] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 200));
+    	b[96] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 300));
+    	b[97] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(200, 100));
+    	b[98] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(200, 200));
+    	b[99] = new BlockMove(mainBoard.getBlocks()[6].getIndex(), new Point(200, 0));
+    	b[100] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 100));
+    	b[101] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(300, 300));
+    	b[102] = new BlockMove(mainBoard.getBlocks()[7].getIndex(), new Point(300, 0));
+    	b[103] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(300, 200));
+    	b[104] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(200, 300));
+    	b[105] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(200, 400));
+    	b[106] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(300, 400));
+    	b[107] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(100, 400));
+    	b[108] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(200, 400));
+    	b[109] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(0, 300));
+    	b[110] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(100, 200));
+    	b[111] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(200, 200));
+    	b[112] = new BlockMove(mainBoard.getBlocks()[3].getIndex(), new Point(0, 200));
+    	b[113] = new BlockMove(mainBoard.getBlocks()[2].getIndex(), new Point(100, 200));
+    	b[114] = new BlockMove(mainBoard.getBlocks()[8].getIndex(), new Point(200, 200));
+    	b[115] = new BlockMove(mainBoard.getBlocks()[0].getIndex(), new Point(300, 300));
+    	b[116] = new BlockMove(mainBoard.getBlocks()[1].getIndex(), new Point(300, 400));
+    	b[117] = new BlockMove(mainBoard.getBlocks()[9].getIndex(), new Point(100, 300));
 		
-		q.add(b);
-		
-		while (!q.isEmpty()) {
-			temp = q.remove();
-			if (temp.getBlocks()[9].getPosition().getX() == 100 && temp.getBlocks()[9].getPosition().getY() == 300) {
-				
-			}
-		}
-		/*
-		 * Need to finish!
-		 */
-		
-		return s;
+    	pathBoard = new KlotskiBoard[118];
+    	int i;
+		pathBoard[0] = new KlotskiBoard();
+    	pathBoard[0].setBlockPosition(pathBoard[0].getBlocks()[b[0].getBlock()], b[0].getPosition());
+    	for (i = 1; i < b.length; i++) {
+    		pathBoard[i] = pathBoard[i - 1].copy();
+        	pathBoard[i].setBlockPosition(pathBoard[i].getBlocks()[b[i].getBlock()], b[i].getPosition());	
+        	pathBoard[i].printCurrentBoard();
+    	}   	
 	}
 }
