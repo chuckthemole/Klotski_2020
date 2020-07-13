@@ -35,6 +35,8 @@ import javafx.scene.*;
 import javafx.scene.control.Button;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -42,6 +44,7 @@ import javafx.scene.paint.Paint;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 import javafx.scene.paint.Color;
@@ -60,7 +63,7 @@ public class Klotski extends Application implements ActionListener {
     private static Pane numberOfMovesPane;
     private static Pane pane;
     private UndoStack solver = null;
-	private static SequentialTransition seqTransition;
+	private static SequentialTransition seqTransition, s;
 	private static int solveCalled = 0;
 	private BlockMove[] b;
 	private Solver solveInstance = null;
@@ -102,10 +105,10 @@ public class Klotski extends Application implements ActionListener {
 
     	// Set up the button pane
         buttonPane.setPrefSize(400, 100);
-        buttonPane.relocate(0, 500);
+        buttonPane.relocate(0, 520);
         buttonPane.setBackground(new Background(new BackgroundFill(Color.BISQUE, CornerRadii.EMPTY, Insets.EMPTY)));
         buttonPane.getChildren().add(buttons.getHBox());
-        buttons.getHBox().relocate(60, 15);
+        buttons.getHBox().relocate(75, 35);
         pane.getChildren().add(0, buttonPane);
         
         // Add blocks to main pane
@@ -119,15 +122,47 @@ public class Klotski extends Application implements ActionListener {
         pane.getChildren().add(mainBoard.getBlocks()[7].getRec());
         pane.getChildren().add(mainBoard.getBlocks()[8].getRec());
         pane.getChildren().add(mainBoard.getBlocks()[9].getRec());
-    	
+        //final String paneCSS = "-fx-border-color: white;\n" + "-fx-border-width: 20;\n";
+        //pane.setStyle(paneCSS);
+        
+        // Border
+        Rectangle bottomLeft = new Rectangle(0, 500, 100, 5);
+	    bottomLeft.setStroke(Color.YELLOW);
+	    bottomLeft.setFill(Color.YELLOW);
+	    pane.getChildren().add(bottomLeft);
+        Rectangle bottomRight = new Rectangle(300, 500, 100, 5);
+        bottomRight.setStroke(Color.YELLOW);
+        bottomRight.setFill(Color.YELLOW);
+	    pane.getChildren().add(bottomRight);
+        Rectangle left = new Rectangle(0, 0, 5, 505);
+        left.setStroke(Color.YELLOW);
+        left.setFill(Color.YELLOW);
+	    pane.getChildren().add(left);
+        Rectangle right = new Rectangle(395, 0, 5, 505);
+        right.setStroke(Color.YELLOW);
+        right.setFill(Color.YELLOW);
+	    pane.getChildren().add(right);
+        Rectangle top = new Rectangle(0, 0, 400, 5);
+        top.setStroke(Color.YELLOW);
+        top.setFill(Color.YELLOW);
+	    pane.getChildren().add(top);
+        
+        Pane mainPane = new Pane();
+        final String cssDefault = "-fx-border-color: blue;\n" + "-fx-border-width: 20;\n";
+        mainPane.setStyle(cssDefault);
+        mainPane.getChildren().add(pane);
+        //mainPane.resize(200, 400);
+        pane.setLayoutX(40);
+        pane.setLayoutY(40);
+ 
         // Set stage
-    	root = new Group(pane);
-    	scene = new Scene(root, 400, 600);
+    	root = new Group(mainPane);
+    	scene = new Scene(root);
         scene.setFill(Paint.valueOf("Black"));
         stage.setOnCloseRequest(e -> System.exit(0));       
         stage.setTitle("Klotski");
         stage.setScene(scene);
-        stage.setResizable(true);
+        stage.setResizable(false);
         stage.centerOnScreen();
         stage.sizeToScene();
         stage.show();
@@ -135,7 +170,7 @@ public class Klotski extends Application implements ActionListener {
         movesText = mainBoard.getUndoStack().getStackSizeAsText();
         numberOfMovesPane.getChildren().add(movesText);
         root.getChildren().add(numberOfMovesPane);
-        numberOfMovesPane.relocate(135, 515);
+        numberOfMovesPane.relocate(180, 590);
                 
         System.out.print("Start called...");
         
@@ -282,12 +317,6 @@ public class Klotski extends Application implements ActionListener {
     
     public void setBlockPosition(int blockIndex, int x, int y) {
     	mainBoard.getBlocks()[blockIndex].setPosition(x, y);
-    }
-    
-    public void winningCondition() {
-    	gt.stop();
-    	gt = klotskiInstance.new GameThread("Klotski");
-    	System.out.println("Number of threads: " + numberOfThreads);
     }
     
     public static void setMovesText() {
@@ -527,6 +556,78 @@ public class Klotski extends Application implements ActionListener {
    		}	
    		seqTransition.play();
     }
+    
+    public void winningCondition() {
+    	//gt.stop();
+    	//gt = klotskiInstance.new GameThread("Klotski");
+    	//System.out.println("Number of threads: " + numberOfThreads);
+    	
+    	int i;
+		double xStart;
+		double yStart;
+		double xEnd;
+		double yEnd;
+		Point blockPositions;
+    	double xOffset;
+    	double yOffset;
+		Path path = new Path(); 
+		PathTransition pathTransition = new PathTransition();  
+		
+		mainBoard.disableMouse();
+		
+    	s = new SequentialTransition ();
+   		s.stop();
+    	
+    	blockPositions = new Point((int) mainBoard.getBlocks()[9].getPosition().getX(), 
+				(int) mainBoard.getBlocks()[9].getPosition().getY());
+    	
+		xEnd = blockPositions.getX();
+		yEnd = blockPositions.getY() + 410;	    	
+		xStart = blockPositions.getX();
+		yStart = blockPositions.getY();
+
+		path.getElements().add (new MoveTo (xStart + 100, yStart + 100)); 
+		path.getElements().add(new LineTo(xEnd + 100, yEnd + 100));
+		
+		//blockPositions[b[i].getBlock()].setLocation(new Point((int) xEnd, (int) yEnd)); 
+
+		xOffset = mainBoard.getBlocks()[9].getPosition().getX() - xEnd;
+		yOffset = mainBoard.getBlocks()[9].getPosition().getY() - yEnd;
+		        
+		//Setting duration for the PathTransition  
+		pathTransition.setDuration(Duration.millis(2000));  
+ 
+		//Setting Node on which the path transition will be applied
+		Node n = mainBoard.getBlocks()[9].getRec();
+		pathTransition.setNode(n);  
+
+		//setting path for the path transition   
+		pathTransition.setPath(path); 
+ 
+		//setting orientation for the path transition   
+		pathTransition.setOrientation(OrientationType.NONE);
+    
+		s.getChildren().add(0, new PauseTransition(Duration.millis(700)));
+		s.getChildren().add(1, pathTransition);
+		s.getChildren().add(2, new PauseTransition(Duration.millis(600)));
+    
+		s.setOnFinished(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				solveCalled = 0;
+            	try {
+            		stage.close();
+                }
+                catch (Exception e) {
+                	System.out.print("Error closing stage...");
+                }           	
+            	mainBoard.enableMouse();
+                start(stage); 
+			}
+		});
+     
+		s.play();
+    }
  
     /**
      * GameThread subclass
@@ -656,6 +757,18 @@ public class Klotski extends Application implements ActionListener {
 		        solve.setOnAction(new EventHandler<ActionEvent>() {
 		            @Override
 		            public void handle(ActionEvent event) {
+		            	try {
+		            		seqTransition.stop();
+		            	}
+		            	catch (Exception e) {
+		            		System.out.println(e);
+		            	}
+		            	try {
+		            		s.stop();
+		            	}
+		            	catch (Exception e) {
+		            		System.out.println(e);
+		            	}
 		                // Set up solver
 		            	solveCalled = 1;
 		            	solveInstance = new Solver(mainBoard);
@@ -676,7 +789,18 @@ public class Klotski extends Application implements ActionListener {
 		            @Override
 		            public void handle(ActionEvent event) {
 		            	solveCalled = 0;
-		            	seqTransition.stop();
+		            	try {
+		            		seqTransition.stop();
+		            	}
+		            	catch (Exception e) {
+		            		System.out.println(e);
+		            	}
+		            	try {
+		            		s.stop();
+		            	}
+		            	catch (Exception e) {
+		            		System.out.println(e);
+		            	}
 		            	try {
 		            		stage.close();
 		                }

@@ -143,11 +143,20 @@ public class KlotskiBoard extends Klotski {
     }
     
     public void disableMouse() {
-    	mouseActive = false;
+    	int i;
+    	mouseActive = false; 	
+		for (i = 0; i < 9; i++) {
+			this.getMouse()[i].disableMouse();
+		}
+
+        for (i = 9; i >= 0; i--) {
+            mouse[i] = new MouseDrag(blocks[i], this); 
+        }  
+        
     }
     
     public void enableMouse() {
-    	mouseActive = true;
+    	setMouse();
     }
     
     public boolean isMouseActive() {
@@ -159,6 +168,7 @@ public class KlotskiBoard extends Klotski {
     }
     
     public void setMouse() {
+    	mouseActive = true;
     	int i;
         for (i = 9; i >= 0; i--) {
             mouse[i] = new MouseDrag(blocks[i], this); 
@@ -290,6 +300,11 @@ public class KlotskiBoard extends Klotski {
 	    	}
 	    	else if (b.getType() == "bigSquare") {
 	    		flag = movingLogicBigSquare(x, y, oldX, oldY, b.getIndex(), b);
+	    		if (flag == 1) {
+	    			if (b.getPosition().getX() == 100 && b.getPosition().getY() == 300) {
+	    				winningCondition();
+	    			}
+	    		}
 	    	}
 	    	else {
 	    		System.out.println("Error, no block type...");
@@ -344,14 +359,14 @@ public class KlotskiBoard extends Klotski {
 		// Check to make sure new location is empty and there is a clear path to that space, if so update board.
 		if (board[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] == -1) {
 			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
-			if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY, index)) {
+			//if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY, index)) {
 				b.setPosition(newLocation);
 	    		board[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
 	    		board[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = index;
 	    		boardByType[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
 	    		boardByType[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = 1;
 	    		flag = 1;
-			}
+			//}
 		}
 		return flag;
     }
@@ -467,7 +482,7 @@ public class KlotskiBoard extends Klotski {
 			 board[(int) newLocation.getX() / 100][((int) newLocation.getY() /100 + 1)] == -1)		 
 				) {
 			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
-			if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY, index)) {
+			//if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY, index)) {
 				b.setPosition(newLocation);
 	    		board[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
 	    		board[(int) (oldX / 100)][(int) (oldY / 100) + 1] = -1;
@@ -479,7 +494,7 @@ public class KlotskiBoard extends Klotski {
 	    		boardByType[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = 2;
 	    		boardByType[(int) newLocation.getX() / 100][((int) newLocation.getY() /100) + 1] = 2;
 	    		flag = 1;
-			}
+			//}
 		}
 		
 		return flag;
@@ -523,7 +538,7 @@ public class KlotskiBoard extends Klotski {
 			 board[((int) newLocation.getX() / 100) + 1][(int) newLocation.getY() /100] == -1)		 
 				) {
 			//System.out.println("Clear Path: " + clearPathMovingLogic(locationX, locationY, newLocationX, newLocationY));
-			if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY, index)) {
+			//if (clearPathMovingLogic((int) (oldX / 100), (int) (oldY / 100), newLocationX, newLocationY, index)) {
 				b.setPosition(newLocation);
 	    		board[(int) (oldX / 100)][(int) (oldY / 100)] = -1;
 	    		board[(int) ((oldX / 100) + 1)][(int) (oldY / 100)] = -1;
@@ -535,7 +550,7 @@ public class KlotskiBoard extends Klotski {
 	    		boardByType[(int) newLocation.getX() / 100][(int) newLocation.getY() /100] = 3;
 	    		boardByType[(int) newLocation.getX() / 100 + 1][((int) newLocation.getY() /100)] = 3;
 	    		flag = 1;
-			}
+			//}
 		}
 		
 		return flag;
